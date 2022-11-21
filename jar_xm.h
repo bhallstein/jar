@@ -137,7 +137,7 @@ void jar_xm_generate_samples(jar_xm_context_t*, float* output, size_t numsamples
  */
 void jar_xm_generate_samples_16bit(jar_xm_context_t* ctx, short* output, size_t numsamples)
 {
-    float* musicBuffer = malloc((2*numsamples)*sizeof(float));
+    float* musicBuffer = (float*) malloc((2*numsamples)*sizeof(float));
     jar_xm_generate_samples(ctx, musicBuffer, numsamples);
 
     if(output){
@@ -156,7 +156,7 @@ void jar_xm_generate_samples_16bit(jar_xm_context_t* ctx, short* output, size_t 
  */
 void jar_xm_generate_samples_8bit(jar_xm_context_t* ctx, char* output, size_t numsamples)
 {
-    float* musicBuffer = malloc((2*numsamples)*sizeof(float));
+    float* musicBuffer =(float*) malloc((2*numsamples)*sizeof(float));
     jar_xm_generate_samples(ctx, musicBuffer, numsamples);
 
     if(output){
@@ -632,7 +632,7 @@ int jar_xm_create_context_safe(jar_xm_context_t** ctxp, const char* moddata, siz
 #endif
 
     bytes_needed = jar_xm_get_memory_needed_for_context(moddata, moddata_length);
-    mempool = malloc(bytes_needed);
+    mempool = (char*) malloc(bytes_needed);
     if(mempool == NULL && bytes_needed > 0) {
         /* malloc() failed, trouble ahead */
         DEBUG("call to malloc() failed, returned %p", (void*)mempool);
@@ -789,8 +789,8 @@ uint64_t jar_xm_get_latest_trigger_of_channel(jar_xm_context_t* ctx, uint16_t ch
 #define READ_MEMCPY(ptr, offset, length) memcpy_pad(ptr, length, moddata, moddata_length, offset)
 
 static inline void memcpy_pad(void* dst, size_t dst_len, const void* src, size_t src_len, size_t offset) {
-    uint8_t* dst_c = dst;
-    const uint8_t* src_c = src;
+    uint8_t* dst_c = (uint8_t*) dst;
+    const uint8_t* src_c = (uint8_t*) src;
 
     /* how many bytes can be copied without overrunning `src` */
     size_t copy_bytes = (src_len >= offset) ? (src_len - offset) : 0;
@@ -1083,11 +1083,11 @@ char* jar_xm_load_module(jar_xm_context_t* ctx, const char* moddata, size_t modd
             instr->panning_envelope.sustain_enabled = flags & (1 << 1);
             instr->panning_envelope.loop_enabled = flags & (1 << 2);
 
-            instr->vibrato_type = READ_U8(offset + 235);
+            instr->vibrato_type = (jar_xm_waveform_type_t) READ_U8(offset + 235);
             if(instr->vibrato_type == 2) {
-                instr->vibrato_type = 1;
+                instr->vibrato_type = (jar_xm_waveform_type_t) 1;
             } else if(instr->vibrato_type == 1) {
-                instr->vibrato_type = 2;
+                instr->vibrato_type = (jar_xm_waveform_type_t) 2;
             }
             instr->vibrato_sweep = READ_U8(offset + 236);
             instr->vibrato_depth = READ_U8(offset + 237);
@@ -1439,7 +1439,7 @@ static void jar_xm_volume_slide(jar_xm_channel_context_t* ch, uint8_t rawval) {
     }
 }
 
-static float jar_xm_envelope_lerp(jar_xm_envelope_point_t* restrict a, jar_xm_envelope_point_t* restrict b, uint16_t pos) {
+static float jar_xm_envelope_lerp(jar_xm_envelope_point_t* a, jar_xm_envelope_point_t* b, uint16_t pos) {
     /* Linear interpolation between two envelope points */
     if(pos <= a->frame) return a->value;
     else if(pos >= b->frame) return b->value;
@@ -1784,7 +1784,7 @@ static void jar_xm_handle_note_and_instrument(jar_xm_context_t* ctx, jar_xm_chan
             break;
 
         case 4: /* E4y: Set vibrato control */
-            ch->vibrato_waveform = s->effect_param & 3;
+            ch->vibrato_waveform = (jar_xm_waveform_type_t) (s->effect_param & 3);
             ch->vibrato_waveform_retrigger = !((s->effect_param >> 2) & 1);
             break;
 
@@ -1819,7 +1819,7 @@ static void jar_xm_handle_note_and_instrument(jar_xm_context_t* ctx, jar_xm_chan
             break;
 
         case 7: /* E7y: Set tremolo control */
-            ch->tremolo_waveform = s->effect_param & 3;
+            ch->tremolo_waveform = (jar_xm_waveform_type_t) (s->effect_param & 3);
             ch->tremolo_waveform_retrigger = !((s->effect_param >> 2) & 1);
             break;
 
@@ -2556,14 +2556,14 @@ uint64_t jar_xm_get_remaining_samples(jar_xm_context_t* ctx)
     uint64_t total = 0;
     uint8_t currentLoopCount = jar_xm_get_loop_count(ctx);
     jar_xm_set_max_loop_count(ctx, 0);
-    
+
     while(jar_xm_get_loop_count(ctx) == currentLoopCount)
     {
         total += ctx->remaining_samples_in_tick;
         ctx->remaining_samples_in_tick = 0;
         jar_xm_tick(ctx);
     }
-    
+
     ctx->loop_count = currentLoopCount;
     return total;
 }
@@ -2623,7 +2623,7 @@ int jar_xm_create_context_from_file(jar_xm_context_t** ctx, uint32_t rate, const
         return 4;
     }
 
-    char* data = malloc(size + 1);
+    char* data = (char*) malloc(size + 1);
     if(fread(data, 1, size, xmf) < size) {
         fclose(xmf);
         DEBUG_ERR("fread() failed");
